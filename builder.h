@@ -27,4 +27,4 @@ n_Folder *create_folder(const char* folder_name, const char* folder_path);
 
 char *strremove(char *str, const char *sub);
 
-void parse_tasks(n_Folder current_folder, const char* full_path, const char* task_file_name);
+void parse_tasks(n_Folder *current_folder, const char* full_path, const char* task_file_name);
