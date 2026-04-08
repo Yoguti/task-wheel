@@ -1,16 +1,18 @@
 #include "builder.h"
 
-f_Collection *build_collection(const char* directory_path, int folder_current_capacity) {
-    f_Collection *collection = (f_Collection*)safe_malloc(sizeof(f_Collection));
+f_Collection *build_collection(const char *directory_path, int folder_current_capacity)
+{
+    f_Collection *collection = (f_Collection *)safe_malloc(sizeof(f_Collection));
 
     collection->folder_count = 0;
     collection->folder_capacity = folder_current_capacity;
-    collection->folders = (n_Folder**)safe_malloc(sizeof(n_Folder*) * collection->folder_capacity);
+    collection->folders = (n_Folder **)safe_malloc(sizeof(n_Folder *) * collection->folder_capacity);
 
     // run trough the directory and for each folder
     // create a new n_Folder and add it to the collection
     DIR *dir = opendir(directory_path);
-    if (dir == NULL) {
+    if (dir == NULL)
+    {
         perror("Unable to open directory");
         free(collection->folders);
         free(collection);
@@ -18,31 +20,36 @@ f_Collection *build_collection(const char* directory_path, int folder_current_ca
     }
 
     struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-    if (strcmp(entry->d_name, ".") != 0 &&
-    strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".gitkeep") != 0){
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, ".") != 0 &&
+            strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".gitkeep") != 0 && (strcmp(entry->d_name, ".data") != 0))
+        {
 
-        if (collection->folder_count == collection->folder_capacity) {
-            collection->folder_capacity *= 2;
-            collection->folders = 
-            (n_Folder**)safe_realloc(collection->folders, collection->folder_capacity * sizeof(n_Folder*));
+            if (collection->folder_count == collection->folder_capacity)
+            {
+                collection->folder_capacity *= 2;
+                collection->folders =
+                    (n_Folder **)safe_realloc(collection->folders, collection->folder_capacity * sizeof(n_Folder *));
+            }
+            // full_path = directory_path + "/" + entry->d_name
+            n_Folder *curr = create_folder(entry->d_name, directory_path);
+            if (curr != NULL)
+            {
+                collection->folders[collection->folder_count++] = curr;
+            }
         }
-        // full_path = directory_path + "/" + entry->d_name
-        n_Folder *curr = create_folder(entry->d_name, directory_path);
-        if (curr != NULL) {
-        collection->folders[collection->folder_count++] = curr;
-        }
-
-    }
     }
     closedir(dir);
     return collection;
 }
 
-static char *xstrdup(const char *str) {
+static char *xstrdup(const char *str)
+{
     size_t len = strlen(str) + 1;
     char *dup = malloc(len);
-    if (dup == NULL) {
+    if (dup == NULL)
+    {
         fprintf(stderr, "Failed to allocate memory\n");
         exit(EXIT_FAILURE);
     }
@@ -50,8 +57,9 @@ static char *xstrdup(const char *str) {
     return dup;
 }
 
-n_Folder *create_folder(const char* folder_name, const char* folder_path) {
-    n_Folder *folder = (n_Folder*)safe_malloc(sizeof(n_Folder));
+n_Folder *create_folder(const char *folder_name, const char *folder_path)
+{
+    n_Folder *folder = (n_Folder *)safe_malloc(sizeof(n_Folder));
     strncpy(folder->name, folder_name, sizeof(folder->name) - 1);
     folder->name[sizeof(folder->name) - 1] = '\0';
     folder->total_task_time = 0;
@@ -61,58 +69,68 @@ n_Folder *create_folder(const char* folder_name, const char* folder_path) {
     char full_path[512];
     snprintf(full_path, sizeof(full_path), "%s/%s", folder_path, folder_name);
     DIR *dir = opendir(full_path);
-    if (dir == NULL) {
+    if (dir == NULL)
+    {
         perror("Unable to open directory");
         free(folder);
         return NULL;
     }
     struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
+    while ((entry = readdir(dir)) != NULL)
+    {
         if (strcmp(entry->d_name, ".") != 0 &&
-        strcmp(entry->d_name, "..") != 0) {
+            strcmp(entry->d_name, "..") != 0)
+        {
             char *temp = xstrdup(entry->d_name);
             char *task_name = strremove(temp, ".txt");
-            if (strcmp(task_name, folder->name) == 0) {
+            if (strcmp(task_name, folder->name) == 0)
+            {
                 parse_tasks(folder, full_path, entry->d_name);
             }
             free(temp);
         }
-    }    
+    }
     closedir(dir);
     return folder;
 }
 
-char *strremove(char *str, const char *sub) {
+char *strremove(char *str, const char *sub)
+{
     size_t len = strlen(sub);
-    if (len > 0) {
+    if (len > 0)
+    {
         char *p = str;
-        while ((p = strstr(p, sub)) != NULL) {
+        while ((p = strstr(p, sub)) != NULL)
+        {
             memmove(p, p + len, strlen(p + len) + 1);
         }
     }
     return str;
 }
 
-void parse_tasks(n_Folder *current_folder, const char* full_path, const char* task_file_name) {
+void parse_tasks(n_Folder *current_folder, const char *full_path, const char *task_file_name)
+{
     char task_file_path[512];
     snprintf(task_file_path, sizeof(task_file_path), "%s/%s", full_path, task_file_name);
     FILE *file = fopen(task_file_path, "r");
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Unable to open task file");
         return;
     }
     char line[256];
-    while (fgets(line, sizeof(line), file)) 
+    while (fgets(line, sizeof(line), file))
     {
-    if (current_folder->task_quantity == MAX_TASKS)
-    {
-        fprintf(stderr, "Maximum task quantity reached for folder: %s\n", current_folder->name);
-        break;
-    }
-    line[strcspn(line, "\n")] = '\0';
-    if (line[0] == '\0') continue;
-   switch (line[0])
-        { // using &line[1] to skip the identifier
+        if (current_folder->task_quantity == MAX_TASKS)
+        {
+            fprintf(stderr, "Maximum task quantity reached for folder: %s\n", current_folder->name);
+            break;
+        }
+        line[strcspn(line, "\n")] = '\0';
+        if (line[0] == '\0')
+            continue;
+        switch (line[0])
+        {         // using &line[1] to skip the identifier
         case '"': // Line begins with ", indicating a task
 
             strncpy(current_folder->tasks[current_folder->task_quantity], &line[1], sizeof(current_folder->tasks[current_folder->task_quantity]) - 1);
@@ -124,13 +142,13 @@ void parse_tasks(n_Folder *current_folder, const char* full_path, const char* ta
             strncpy(current_folder->folder_color_hex, &line[1], sizeof(current_folder->folder_color_hex) - 1);
             current_folder->folder_color_hex[sizeof(current_folder->folder_color_hex) - 1] = '\0';
             break;
-        
+
         case '@': // Line begins with a @, indicating task time
             current_folder->total_task_time += atof(&line[1]);
             break;
         default:
             break;
         }
-    }   
+    }
     fclose(file);
 }

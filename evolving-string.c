@@ -220,3 +220,56 @@ int main() {
     free_population(pop);
     return 0;
 }
+
+#include <stdlib.h>
+#include <time.h>
+
+// Global or per-session tracking
+static int *pick_counts = NULL;
+static int total_picks = 0;
+
+// Initialize (call once per collection)
+void init_pick_tracking(int n) {
+    pick_counts = calloc(n, sizeof(int));
+    total_picks = 0;
+    srand(time(NULL));
+}
+
+// Enforced uniform selection
+n_Folder *select_uniform(n_Folder **folders, int n) {
+    if (!pick_counts) init_pick_tracking(n);
+
+    // Find the item with the lowest pick count
+    int min_count = INT_MAX;
+    int candidate = -1;
+    for (int i = 0; i < n; i++) {
+        if (pick_counts[i] < min_count) {
+            min_count = pick_counts[i];
+            candidate = i;
+        }
+    }
+
+    // If multiple have the same low count, pick randomly among them
+    int *low_candidates = malloc(n * sizeof(int));
+    int low_count = 0;
+    for (int i = 0; i < n; i++) {
+        if (pick_counts[i] == min_count) {
+            low_candidates[low_count++] = i;
+        }
+    }
+
+    int selected_index = low_candidates[rand() % low_count];
+    free(low_candidates);
+
+    pick_counts[selected_index]++;
+    total_picks++;
+
+    return folders[selected_index];
+}
+
+// Reset tracking if needed
+void reset_tracking() {
+    if (pick_counts) free(pick_counts);
+    pick_counts = NULL;
+    total_picks = 0;
+}

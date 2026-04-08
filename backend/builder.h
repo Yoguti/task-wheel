@@ -7,6 +7,11 @@
 
 #define MAX_TASKS 100
 
+typedef struct t_task {
+    char description[2048];
+    int pickrate;
+} t_task;
+
 typedef struct n_Folder {
     char name[256];
     float total_task_time;
