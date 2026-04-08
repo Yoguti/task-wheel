@@ -38,6 +38,17 @@ f_Collection *build_collection(const char* directory_path, int folder_current_ca
     return collection;
 }
 
+static char *xstrdup(const char *str) {
+    size_t len = strlen(str) + 1;
+    char *dup = malloc(len);
+    if (dup == NULL) {
+        fprintf(stderr, "Failed to allocate memory\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(dup, str, len);
+    return dup;
+}
+
 n_Folder *create_folder(const char* folder_name, const char* folder_path) {
     n_Folder *folder = (n_Folder*)safe_malloc(sizeof(n_Folder));
     strncpy(folder->name, folder_name, sizeof(folder->name) - 1);
@@ -58,7 +69,7 @@ n_Folder *create_folder(const char* folder_name, const char* folder_path) {
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") != 0 &&
         strcmp(entry->d_name, "..") != 0) {
-            char *temp = strdup(entry->d_name);
+            char *temp = xstrdup(entry->d_name);
             char *task_name = strremove(temp, ".txt");
             if (strcmp(task_name, folder->name) == 0) {
                 parse_tasks(folder, full_path, entry->d_name);
@@ -91,34 +102,27 @@ void parse_tasks(n_Folder *current_folder, const char* full_path, const char* ta
     }
     char line[256];
     while (fgets(line, sizeof(line), file))
-    {
-        strncpy(current_folder->tasks[current_folder->task_quantity], line, sizeof(current_folder->tasks[current_folder->task_quantity]) - 1);
-        current_folder->tasks[current_folder->task_quantity][sizeof(current_folder->tasks[current_folder->task_quantity]) - 1] = '\0';
-        current_folder->task_quantity++;
+    {   switch (line[0])
+        { // using &line[1] to skip the identifier
+        case '"': // Line begins with ", indicating a task
+
+            strncpy(current_folder->tasks[current_folder->task_quantity], &line[1], sizeof(current_folder->tasks[current_folder->task_quantity]) - 1);
+            current_folder->tasks[current_folder->task_quantity][sizeof(current_folder->tasks[current_folder->task_quantity]) - 1] = '\0';
+            current_folder->task_quantity++;
+            break;
+
+        case '#': // Line begins with #, indicating a color
+            strncpy(current_folder->folder_color_hex, &line[1], sizeof(current_folder->folder_color_hex) - 1);
+            current_folder->folder_color_hex[sizeof(current_folder->folder_color_hex) - 1] = '\0';
+            break;
+        
+        case '@': // Line begins with a @, indicating task time
+            current_folder->total_task_time += atof(&line[1]);
+            break;
+        default:
+            break;
+        }
     }
     
     fclose(file);
-}
-
-int main() {
-    f_Collection *col = build_collection("./collections", 5);
-
-    for (size_t i = 0; i < col->folder_count; i++)
-    {
-        printf("Folder Name: %s\n", col->folders[i]->name);
-        printf("Total Task Time: %.2f\n", col->folders[i]->total_task_time);
-        printf("Task Quantity: %d\n", col->folders[i]->task_quantity);
-        printf("Folder Color: %s\n", col->folders[i]->folder_color_hex);
-        printf("Tasks:\n");
-        for (size_t j = 0; j < col->folders[i]->task_quantity; j++)
-        {            printf("  - %s", col->folders[i]->tasks[j]);
-        }
-    }
-
-    for (int i = 0; i < col->folder_count; i++) {
-    free(col->folders[i]);}
-    free(col->folders);
-    free(col);
-    return 0;
-
 }

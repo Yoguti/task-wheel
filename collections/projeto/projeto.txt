@@ -1,4 +1,7 @@
-teste1
-teste 2
-TESTE3
-O
+"Task Wheel
+"RPG System
+"VHDL Neuromorphic noise filter using evolutionary fitting for reservoir computing
+"Revolution Solids in Haskell
+"Neoma Art
+@1
+#01f747
