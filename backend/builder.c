@@ -29,8 +29,9 @@ f_Collection *build_collection(const char* directory_path, int folder_current_ca
         }
         // full_path = directory_path + "/" + entry->d_name
         n_Folder *curr = create_folder(entry->d_name, directory_path);
-        collection->folders[collection->folder_count] = curr;
-        collection->folder_count++;
+        if (curr != NULL) {
+        collection->folders[collection->folder_count++] = curr;
+        }
 
     }
     }
@@ -101,8 +102,16 @@ void parse_tasks(n_Folder *current_folder, const char* full_path, const char* ta
         return;
     }
     char line[256];
-    while (fgets(line, sizeof(line), file))
-    {   switch (line[0])
+    while (fgets(line, sizeof(line), file)) 
+    {
+    if (current_folder->task_quantity == MAX_TASKS)
+    {
+        fprintf(stderr, "Maximum task quantity reached for folder: %s\n", current_folder->name);
+        break;
+    }
+    line[strcspn(line, "\n")] = '\0';
+    if (line[0] == '\0') continue;
+   switch (line[0])
         { // using &line[1] to skip the identifier
         case '"': // Line begins with ", indicating a task
 
@@ -122,7 +131,6 @@ void parse_tasks(n_Folder *current_folder, const char* full_path, const char* ta
         default:
             break;
         }
-    }
-    
+    }   
     fclose(file);
 }
