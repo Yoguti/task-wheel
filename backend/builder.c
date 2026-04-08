@@ -20,7 +20,7 @@ f_Collection *build_collection(const char* directory_path, int folder_current_ca
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
     if (strcmp(entry->d_name, ".") != 0 &&
-    strcmp(entry->d_name, "..") != 0) {
+    strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".gitkeep") != 0){
 
         if (collection->folder_count == collection->folder_capacity) {
             collection->folder_capacity *= 2;

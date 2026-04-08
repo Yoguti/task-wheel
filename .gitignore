@@ -1,2 +1,6 @@
-collections/
-obj/
+# keep the collections and obj folders, but ignore all contents
+collections/*
+!collections/.gitkeep
+
+obj/*
+!obj/.gitkeep
