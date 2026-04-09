@@ -47,7 +47,7 @@ f_Collection *build_collection(const char *directory_path, int folder_current_ca
 static char *xstrdup(const char *str)
 {
     size_t len = strlen(str) + 1;
-    char *dup = malloc(len);
+    char *dup = safe_malloc(len);
     if (dup == NULL)
     {
         fprintf(stderr, "Failed to allocate memory\n");
@@ -132,9 +132,33 @@ void parse_tasks(n_Folder *current_folder, const char *full_path, const char *ta
         switch (line[0])
         {         // using &line[1] to skip the identifier
         case '"': // Line begins with ", indicating a task
-
-            strncpy(current_folder->tasks[current_folder->task_quantity], &line[1], sizeof(current_folder->tasks[current_folder->task_quantity]) - 1);
-            current_folder->tasks[current_folder->task_quantity][sizeof(current_folder->tasks[current_folder->task_quantity]) - 1] = '\0';
+            // Allocate memory for the new task
+            current_folder->tasks[current_folder->task_quantity] = (t_task *)safe_malloc(sizeof(t_task));
+            char *p = line;
+            // Skip opening quote
+            p++;
+            int i = strcspn(p, "\"");
+            if (p[i] == '\0') break; // malformed
+            p[i] = '\0';
+            // Copy task name
+            strncpy(current_folder->tasks[current_folder->task_quantity]->name, p, sizeof(current_folder->tasks[current_folder->task_quantity]->name) - 1);
+            current_folder->tasks[current_folder->task_quantity]->name[sizeof(current_folder->tasks[current_folder->task_quantity]->name) - 1] = '\0';
+            // Move past null terminator
+            p += i + 1;
+            p++; // skip ( after task name
+            i = strcspn(p, ")");
+            if (p[i] == '\0') break; // malformed
+            p[i] = '\0';
+            // Copy task pickrate
+            current_folder->tasks[current_folder->task_quantity]->pickrate = atoi(p);
+            // Move past null terminator and arrow body "-""
+            p += i + 2;
+            i = strcspn(p, ">");
+            if (p[i] == '\0') break; // malformed
+            // Copy task description
+            p += i + 1; // skip past ">"
+            strncpy(current_folder->tasks[current_folder->task_quantity]->description, p, sizeof(current_folder->tasks[current_folder->task_quantity]->description) - 1);
+            current_folder->tasks[current_folder->task_quantity]->description[sizeof(current_folder->tasks[current_folder->task_quantity]->description) - 1] = '\0';
             current_folder->task_quantity++;
             break;
 

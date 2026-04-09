@@ -8,6 +8,7 @@
 #define MAX_TASKS 100
 
 typedef struct t_task {
+    char name[256];
     char description[2048];
     int pickrate;
 } t_task;
@@ -17,7 +18,7 @@ typedef struct n_Folder {
     float total_task_time;
     int task_quantity;
     char folder_color_hex[8]; // "#RRGGBB" + '\0'
-    char tasks[MAX_TASKS][256]; // Array of task descriptions
+    t_task *tasks[MAX_TASKS]; // Array of task descriptions
 } n_Folder;
 
 typedef struct f_Collection {
