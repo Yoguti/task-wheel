@@ -8,4 +8,12 @@ typedef struct t_task_list {
 
 void parse_data(const char *directory_path);
 
-t_task_list *choose_task(f_Collection *collection);
+t_task_list *choose_task(f_Collection *collection, const char *directory_path);
+
+void update_pickrate(t_task *task, n_Folder *folder, const char *full_path);
+
+void reset_task_pickrate(t_task *task, n_Folder *folder, const char *full_path);
+
+void reset_folder_pickrate(n_Folder *folder, const char *full_path);
+
+void reset_collection_pickrate_all(f_Collection *collection, const char *directory_path);
