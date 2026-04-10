@@ -6,14 +6,12 @@ SRCDIR_BACK = backend
 SRCDIR_FRONT = frontend
 OBJDIR = obj
 
-# Lista de todos os arquivos .c necessários
 SRCS = $(SRCDIR_BACK)/task-selector.c \
        $(SRCDIR_BACK)/builder.c \
        $(SRCDIR_BACK)/utils.c \
        $(SRCDIR_FRONT)/interface.c \
        controler.c
 
-# Converte arquivos .c em .o mapeados na pasta obj
 OBJS = $(patsubst %.c, $(OBJDIR)/%.o, $(SRCS))
 
 TARGET = $(OBJDIR)/task-wheel

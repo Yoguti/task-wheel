@@ -157,66 +157,6 @@ static void load_history(void) {
     fclose(file);
 }
 
-static bool is_directory(const char *path) {
-    struct stat st;
-    return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
-}
-
-static void load_browser_dir(const char *path) {
-    DIR *dir = opendir(path);
-    if (!dir) return;
-    browser_entry_count = 0;
-    strcpy(browser_entries[browser_entry_count++], "..");
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL && browser_entry_count < 256) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
-        char full[PATH_MAX];
-        snprintf(full, sizeof(full), "%s/%s", path, entry->d_name);
-        if (is_directory(full)) {
-            strncpy(browser_entries[browser_entry_count++], entry->d_name, 255);
-        }
-    }
-    closedir(dir);
-    for (int i = 1; i < browser_entry_count - 1; i++) {
-        for (int j = i + 1; j < browser_entry_count; j++) {
-            if (strcmp(browser_entries[i], browser_entries[j]) > 0) {
-                char temp[256];
-                strcpy(temp, browser_entries[i]); strcpy(browser_entries[i], browser_entries[j]); strcpy(browser_entries[j], temp);
-            }
-        }
-    }
-}
-
-static void free_collection(f_Collection *collection) {
-    if (collection == NULL) return;
-    for (int i = 0; i < collection->folder_count; i++) {
-        n_Folder *folder = collection->folders[i];
-        for (int j = 0; j < folder->task_quantity; j++) free(folder->tasks[j]);
-        free(folder);
-    }
-    free(collection->folders); free(collection);
-}
-
-static bool create_category_on_disk(const char *base_path, const char *category_name, float time_val, const char* color_hex) {
-    if (category_name == NULL || category_name[0] == '\0') return false;
-    char category_path[PATH_MAX + 512]; snprintf(category_path, sizeof(category_path), "%s/%s", base_path, category_name);
-    if (mkdir(category_path, 0755) != 0) return false;
-    char category_file[PATH_MAX + 512]; if (snprintf(category_file, sizeof(category_file), "%s/%s.txt", category_path, category_name) < 0) return false;
-    FILE *file = fopen(category_file, "w"); if (file == NULL) return false;
-    fprintf(file, "@%.2f\n%s\n", time_val, color_hex); fclose(file);
-    return true;
-}
-
-static bool append_task_to_category(const char *base_path, const char *category_name, const char *task_name, int pickrate, const char *description) {
-    if (task_name == NULL || task_name[0] == '\0') return false;
-    char category_file[PATH_MAX + 512]; snprintf(category_file, sizeof(category_file), "%s/%s/%s.txt", base_path, category_name, category_name);
-    FILE *file = fopen(category_file, "a"); if (file == NULL) return false;
-    fprintf(file, "\"%s\"(%d)->%s\n", task_name, pickrate, description ? description : ""); fclose(file);
-    return true;
-}
-
-extern bool update_task_description_on_disk(const char *base_path, const char *category_name, const char *task_name, const char *new_desc);
-
 static void load_collection_path(f_Collection **collection, AppState *appState, const char *path, bool save_history) {
     if (collection == NULL || path == NULL) return;
     if (!is_directory(path)) { snprintf(start_message, sizeof(start_message), "Selected path is not a directory."); return; }
@@ -310,7 +250,7 @@ void UpdateDrawFrame(f_Collection **collection, AppState *appState) {
         if (show_browser && browser_path_active) {
             char resolved[PATH_MAX];
             if (realpath(browser_path, resolved) != NULL) strcpy(browser_path, resolved);
-            load_browser_dir(browser_path);
+            load_browser_dir(browser_path, browser_entries, &browser_entry_count);
             browser_scroll = 0;
             browser_path_active = false;
         }
@@ -381,7 +321,7 @@ void UpdateDrawFrame(f_Collection **collection, AppState *appState) {
         DrawRectangleRounded(browseBtn, 0.3f, 10, browseHov ? HexToColor("#2563EB") : HexToColor("#3B82F6"));
         DrawText("Browse / Create...", browseBtn.x + 40, browseBtn.y + 15, 20, WHITE);
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && browseHov) {
-            show_browser = true; load_browser_dir(browser_path);
+            show_browser = true; load_browser_dir(browser_path, browser_entries, &browser_entry_count);
         }
 
         if (start_message[0] != '\0') DrawText(start_message, 460, WINDOW_HEIGHT - 60, 20, RED);
@@ -416,7 +356,7 @@ void UpdateDrawFrame(f_Collection **collection, AppState *appState) {
                 if (goHov) {
                     char resolved[PATH_MAX];
                     if (realpath(browser_path, resolved) != NULL) strcpy(browser_path, resolved);
-                    load_browser_dir(browser_path); browser_scroll = 0;
+                    load_browser_dir(browser_path, browser_entries, &browser_entry_count); browser_scroll = 0;
                 }
             }
 
@@ -438,7 +378,7 @@ void UpdateDrawFrame(f_Collection **collection, AppState *appState) {
                 DrawRectangleRoundedLines(shBtn, 0.2f, 10, HexToColor("#CBD5E1"));
                 DrawText(labels[i], shBtn.x + 15, shBtn.y + 10, 16, HexToColor("#334155"));
                 if (shHov && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    strcpy(browser_path, paths[i]); load_browser_dir(browser_path); browser_scroll = 0; browser_path_active = false;
+                    strcpy(browser_path, paths[i]); load_browser_dir(browser_path, browser_entries, &browser_entry_count); browser_scroll = 0; browser_path_active = false;
                 }
             }
 
@@ -463,7 +403,7 @@ void UpdateDrawFrame(f_Collection **collection, AppState *appState) {
                     char new_path[PATH_MAX + 512]; snprintf(new_path, sizeof(new_path), "%s/%s", browser_path, browser_entries[i]);
                     char resolved[PATH_MAX];
                     if (realpath(new_path, resolved) != NULL) {
-                        strcpy(browser_path, resolved); load_browser_dir(browser_path); browser_scroll = 0; break; 
+                        strcpy(browser_path, resolved); load_browser_dir(browser_path, browser_entries, &browser_entry_count); browser_scroll = 0; break; 
                     }
                 }
                 bY += 35;
@@ -489,7 +429,7 @@ void UpdateDrawFrame(f_Collection **collection, AppState *appState) {
                 
                 if (crHov && browser_new_folder[0] != '\0') {
                     char mk[PATH_MAX + 256]; snprintf(mk, sizeof(mk), "%s/%s", browser_path, browser_new_folder);
-                    mkdir(mk, 0755); load_browser_dir(browser_path); browser_new_folder[0] = '\0'; browser_new_folder_active = false;
+                    mkdir(mk, 0755); load_browser_dir(browser_path, browser_entries, &browser_entry_count); browser_new_folder[0] = '\0'; browser_new_folder_active = false;
                 }
             }
 

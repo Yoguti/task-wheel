@@ -8,7 +8,7 @@
 typedef enum {
     SCREEN_COLLECTION_SELECT,
     SCREEN_WHEEL
-} AppScreen;
+} ScreenState;
 
 typedef enum {
     WHEEL_IDLE,
@@ -17,7 +17,7 @@ typedef enum {
 } WheelState;
 
 typedef struct {
-    AppScreen screen;
+    ScreenState screen;
     WheelState state;
     float rotation_angle;
     float spin_velocity;
