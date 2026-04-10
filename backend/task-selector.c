@@ -213,8 +213,9 @@ void reset_collection_pickrate_all(f_Collection *collection, const char *directo
         reset_folder_pickrate(f, full_path);
     }
 }
-
+/*
 int main() {
+
     f_Collection *col = build_collection("../collections", 5);
     if (!col) return 1;
 
@@ -246,9 +247,9 @@ int main() {
             }
         }
     }
-
+// Build a basic interface using raylib (already installed) to display roulett
     printf("\n==========================================\n");
-
+    reset_collection_pickrate_all(col, "../collections");
 
     free(chosen_tasks->tasks);
     free(chosen_tasks);
@@ -265,3 +266,4 @@ int main() {
 
     return 0;
 }
+*/

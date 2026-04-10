@@ -1,9 +1,13 @@
+#ifndef BUILDER_H
+#define BUILDER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <stdbool.h>
 #include "utils.h"
-
+#include <linux/limits.h>
 
 #define MAX_TASKS 100
 
@@ -34,4 +38,11 @@ n_Folder *create_folder(const char* folder_name, const char* folder_path);
 char *strremove(char *str, const char *sub);
 
 void parse_tasks(n_Folder *current_folder, const char* full_path, const char* task_file_name);
+
+bool delete_category_on_disk(const char *base_path, const char *category_name);
+
+bool delete_task_on_disk(const char *base_path, const char *category_name, const char *task_name);
+
+bool update_task_description_on_disk(const char *base_path, const char *category_name, const char *task_name, const char *new_desc);
+#endif
 

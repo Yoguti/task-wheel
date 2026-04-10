@@ -1,4 +1,6 @@
 #include "builder.h"
+#include <unistd.h>
+#include <string.h>
 
 f_Collection *build_collection(const char *directory_path, int folder_current_capacity)
 {
@@ -175,4 +177,93 @@ void parse_tasks(n_Folder *current_folder, const char *full_path, const char *ta
         }
     }
     fclose(file);
+}
+
+bool update_task_description_on_disk(const char *base_path, const char *category_name, const char *task_name, const char *new_desc) {
+    char category_file[PATH_MAX + 256];
+    snprintf(category_file, sizeof(category_file), "%s/%s/%s.txt", base_path, category_name, category_name);
+    FILE *file = fopen(category_file, "r");
+    if (!file) return false;
+
+    char lines[512][1024];
+    int count = 0;
+    char line[1024];
+    while (fgets(line, sizeof(line), file) && count < 512) {
+        strcpy(lines[count++], line);
+    }
+    fclose(file);
+
+    file = fopen(category_file, "w");
+    if (!file) return false;
+
+    for (int i = 0; i < count; i++) {
+        if (lines[i][0] == '"') {
+            char temp[1024];
+            strcpy(temp, lines[i] + 1);
+            char *name_end = strchr(temp, '"');
+            if (name_end) {
+                *name_end = '\0';
+                if (strcmp(temp, task_name) == 0) {
+                    char *p = name_end + 1;
+                    p++; // Pula '('
+                    int pickrate = atoi(p);
+                    fprintf(file, "\"%s\"(%d)->%s\n", task_name, pickrate, new_desc ? new_desc : "");
+                    continue;
+                }
+            }
+        }
+        fprintf(file, "%s", lines[i]);
+    }
+    fclose(file);
+    return true;
+}
+
+bool delete_category_on_disk(const char *base_path, const char *category_name) {
+    char category_file[512];
+    snprintf(category_file, sizeof(category_file), "%s/%s/%s.txt", base_path, category_name, category_name);
+    if (access(category_file, F_OK) == 0) {
+        remove(category_file);
+    }
+    char category_path[512];
+    snprintf(category_path, sizeof(category_path), "%s/%s", base_path, category_name);
+    if (rmdir(category_path) != 0) return false;
+    return true;
+}
+
+bool delete_task_on_disk(const char *base_path, const char *category_name, const char *task_name) {
+    char category_file[512];
+    snprintf(category_file, sizeof(category_file), "%s/%s/%s.txt", base_path, category_name, category_name);
+    FILE *file = fopen(category_file, "r");
+    if (!file) return false;
+
+    char lines[512][1024];
+    int count = 0;
+    char line[1024];
+    bool deleted = false;
+    while (fgets(line, sizeof(line), file) && count < 512) {
+        if (line[0] == '"') {
+            char temp[1024];
+            strcpy(temp, line + 1);
+            char *name_end = strchr(temp, '"');
+            if (name_end) {
+                *name_end = '\0';
+                if (strcmp(temp, task_name) == 0) {
+                    deleted = true;
+                    continue;
+                }
+            }
+        }
+        strcpy(lines[count++], line);
+    }
+    fclose(file);
+
+    if (!deleted) return false;
+
+    file = fopen(category_file, "w");
+    if (!file) return false;
+    for (int i = 0; i < count; i++) {
+        fputs(lines[i], file);
+    }
+    fclose(file);
+    return true;
 }
